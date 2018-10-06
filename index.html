@@ -1,0 +1,39 @@
+<html>
+    <body>
+        <h1>Hello! My first web app</h1>
+        <button id = 'mybutton'>Click me!</button>
+
+        <script>
+    
+        let movie = {
+           "title" : "The Shawshank Redemption",
+           "year" : 1994,
+           "director" : {
+               "name": "Frank Darabont",
+               "placeOfBirth": "Montbéliard, Doubs, France",
+               "dateOfBirth": "January 28, 1959"
+           },
+           "faq" : [
+               "Q: The movie is dedicated to an Allen Greene. Who was he?",
+               "Q: What was Red's crime?",
+               "Q: How faithful is the film to the original novella?"
+           ],
+           "actors" : [
+               {
+                   "name" : "Tim Robbins",
+                   "role" : "Andy Dufresne",
+               },
+               {
+                   "name" : "Morgan Freeman",
+                   "role" : "Ellis Boyd 'Red' Redding",
+               }
+           ]
+       }
+
+        const b = document.getElementById("mybutton");
+        b.addEventListener("click", 
+        e => alert(movie.title + " " + movie.year + " " + movie.director.name))
+
+        </script>
+    </body>
+</html>
