@@ -4,9 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+    html,
+    body,
+    #divMapView {
+        padding: 0;
+        margin: 0;
+        width:100%;
+        height:100%;
+    }
+    #divToolbar {
+        top:0;
+        width:100%;
+        position: fixed;
+        background:rgba(0,0,0,0.6);
+        color: white;
+    }
+
+    </style>
     <title>San Diego Landmark Locator</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.9/esri/css/main.css">
+    <script src="https://js.arcgis.com/4.9/"></script> 
+    <script>
+     
+     function onTypeChange(e) {
+        const dd = e.target;
+        const selectedIndex = dd.options.selectedIndex;
+        const type = dd.options[selectedIndex].textContent;
+        const landmarkLayer = getActiveLayer(); 
+        const query = landmarkLayer.createQuery();
+        query.where = "Type = '" + type + "'"; 
+        landmarkLayer.queryFeatureCount(query)
+        .then(c => {
+            const lblTypeCount = document.getElementById("lblTypeCount");
+            lblTypeCount.textContent = c;
+        })
+        .catch(e => alert("Error executing function."))
+     }
+
+     function loadLandmarkTypes() {
+        const ddTypeList = document.getElementById("ddTypeList");
+        const types = ['library', 'restaurant', 'cafe', 'school', 'bar', 'hospital']
+        types.forEach(t => {
+            let o = document.createElement("option");
+            o.textContent = t;
+            ddTypeList.appendChild(o)
+        })
+     }
+
+     function loadLayers(layers) {
+      const ddLayerList = document.getElementById("ddLayerList");
+       layers.forEach(l => {
+            let o = document.createElement("option");
+            o.textContent = l.title;
+            o.layer = l;
+            ddLayerList.appendChild(o)
+       });
+     }
+
+     function getActiveLayer () {
+        const ddLayerList = document.getElementById("ddLayerList");
+        const selectedIndex = ddLayerList.options.selectedIndex;
+        return ddLayerList.options[selectedIndex].layer;
+     }
+      
+     require (["esri/WebMap", "esri/views/MapView"],
+     (WebMap,MapView) => {
+        const map = new WebMap({
+            "portalItem" : {
+                "id" : "2e4db9b83977465b878fbafc4dc96a1d"
+            }
+        });
+        const mapView = new MapView({ 
+            "container" : "divMapView",
+            "map" : map
+        })
+        
+        map.when(() => {
+            //map is ready
+
+            loadLayers(map.layers);
+            loadLandmarkTypes();
+            
+            //setup events 
+            const ddTypeList = document.getElementById("ddTypeList");
+            ddTypeList.addEventListener("change", onTypeChange);
+
+        })
+          
+
+     })  
+    </script>
 </head>
 <body>
-    
+    <div id = 'divMapView'></div>
+    <div id = 'divToolbar'>
+        <label>Layers</label>
+        <select id = 'ddLayerList'>
+        </select>
+        <label>Types</label>
+        <select id = 'ddTypeList'>
+        </select>
+        <label id = 'lblTypeCount'></label>
+    </div>
 </body>
 </html>
