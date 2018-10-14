@@ -33,7 +33,12 @@
         const type = dd.options[selectedIndex].textContent;
         const landmarkLayer = getActiveLayer(); 
         const query = landmarkLayer.createQuery();
-        query.where = "Type = '" + type + "'"; 
+        if (type == "All")
+            query.where = "1=1";
+        else
+            query.where = "Type = '" + type + "'";
+        
+        landmarkLayer.definitionExpression = query.where;
         landmarkLayer.queryFeatureCount(query)
         .then(c => {
             const lblTypeCount = document.getElementById("lblTypeCount");
@@ -44,12 +49,22 @@
 
      function loadLandmarkTypes() {
         const ddTypeList = document.getElementById("ddTypeList");
-        const types = ['library', 'restaurant', 'cafe', 'school', 'bar', 'hospital']
-        types.forEach(t => {
+        const landmarkLayer = getActiveLayer();
+        const query = landmarkLayer.createQuery();
+        query.outFields = ["type"];
+        query.returnGeometry = false;
+        query.returnDistinctValues = true;
+        const oAll = document.createElement("option");
+        oAll.textContent = "All";
+        ddTypeList.appendChild(oAll);
+        landmarkLayer.queryFeatures(query)
+        .then(result =>  result.features.forEach(t => {
             let o = document.createElement("option");
-            o.textContent = t;
+            o.textContent = t.attributes.Type;
             ddTypeList.appendChild(o)
-        })
+        }))
+        .catch(e => alert("Error executing query." + e));
+         
      }
 
      function loadLayers(layers) {
