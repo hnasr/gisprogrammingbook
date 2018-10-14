@@ -28,12 +28,19 @@
     <script>
     
      function loadLayers(layers) {
+      const ddLayerList = document.getElementById("ddLayerList");
        layers.forEach(l => {
-            let ddLayerList = document.getElementById("ddLayerList");
             let o = document.createElement("option");
             o.textContent = l.title;
+            o.layer = l;
             ddLayerList.appendChild(o)
        });
+     }
+
+     function getActiveLayer () {
+        const ddLayerList = document.getElementById("ddLayerList");
+        const selectedIndex = ddLayerList.options.selectedIndex;
+        return ddLayerList.options[selectedIndex].layer;
      }
       
      require (["esri/WebMap", "esri/views/MapView"],
