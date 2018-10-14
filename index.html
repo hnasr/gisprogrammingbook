@@ -4,9 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+    html,
+    body,
+    #divMapView {
+        padding: 0;
+        margin: 0;
+        width:100%;
+        height:100%;
+    }
+    #toolbar {
+        top:0;
+        width:100%;
+        position: fixed;
+        background:rgba(0,0,0,0.6);
+        color: white;
+    }
+
+    </style>
     <title>San Diego Landmark Locator</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.9/esri/css/main.css">
+    <script src="https://js.arcgis.com/4.9/"></script> 
+    <script>
+    
+     function loadLayers(layers) {
+       layers.forEach(l => {
+            let ddLayerList = document.getElementById("ddLayerList");
+            let o = document.createElement("option");
+            o.textContent = l.title;
+            ddLayerList.appendChild(o)
+       });
+     }
+      
+     require (["esri/WebMap", "esri/views/MapView"],
+     (WebMap,MapView) => {
+        const map = new WebMap({
+            "portalItem" : {
+                "id" : "2e4db9b83977465b878fbafc4dc96a1d"
+            }
+        });
+        const mapView = new MapView({ 
+            "container" : "divMapView",
+            "map" : map
+        })
+        
+        map.when(() => loadLayers(map.layers))
+          
+
+     })  
+    </script>
 </head>
 <body>
-    
+    <div id = 'divMapView'></div>
+    <div id = 'toolbar'>
+        <label>Layers</label>
+        <select id = 'ddLayerList'>
+        </select>
+    </div>
 </body>
 </html>
