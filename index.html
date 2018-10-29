@@ -132,6 +132,7 @@
      require (["esri/WebMap", "esri/views/MapView"],
      (WebMap,MapView) => {
         const map = new WebMap({
+            
             "portalItem" : {
                 "id" : "2e4db9b83977465b878fbafc4dc96a1d" 
             }
@@ -156,7 +157,7 @@
             //create custom popup
             let landmarkLayer = getActiveLayer();
                 landmarkLayer.popupTemplate = { 
-                    "title": "My Custom Template",
+                    "title": "My Custom Template - {Name}",
                     "content": feature => {
                         //return a div element and a drop down list with a text element
                         const dv = document.createElement("div");
