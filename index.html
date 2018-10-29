@@ -4,9 +4,300 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+    html,
+    body,
+    #divMapView {
+        padding: 0;
+        margin: 0;
+        width:100%;
+        height:100%;
+    }
+    #divToolbar {
+        top:0;
+        width:100%;
+        position: fixed;
+        background:rgba(0,0,0,0.6);
+        color: white;
+    }
+    .searchBox {
+        width:200px;
+        right:0;
+        position: absolute;
+        background-color: rgba(255,255,255);
+        color: black;
+    }
+    .searchResult {
+        display:none;
+        width:200px;
+        height:60px;
+        right:0;
+        position: absolute;
+        background-color: rgba(255,255,255);
+        color: black;
+    }
+
+    </style>
     <title>San Diego Landmark Locator</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.9/esri/css/main.css">
+    <script src="https://js.arcgis.com/4.9/"></script> 
+    <script>
+     let divSearchResults;
+     function createLineGraphic(point1, point2) {
+        //create line graphic
+        let lineGeometry = {
+             type: "polyline",
+             paths: [
+                 [point1.x, point1.y],
+                 [point2.x, point2.y]
+             ],
+             spatialReference: point1.spatialReference
+         }
+  
+        const lineSymbol = {
+			type: "simple-line"
+		}
+        const mapview = window.mapView;
+        let graphic = new window.Graphic({geometry: lineGeometry, symbol: lineSymbol})
+        mapview.graphics.add(graphic);
+        
+        //calculate the distance
+        const distanceMeters = Math.round(Math.sqrt( Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y,2)))
+        const distanceFeet =  Math.round(3.281 * distanceMeters);
+        const textSymbol = {
+            type: "text",
+            text: distanceFeet + " ft.",
+            color: [255,255,255]
+        }
+        let textGraphic = new Graphic({geometry: point2, symbol: textSymbol});
+        mapview.graphics.add(textGraphic);
+     }
+
+     function createPointGraphic(geometry) {
+        //create point graphic
+        const markerSymbol = {
+			type: "simple-marker",
+            color: [255,0,0,0.5],
+            size: 25
+		}
+        const mapview = window.mapView;
+        let graphic = new window.Graphic({geometry: geometry, symbol: markerSymbol})
+        mapview.graphics.add(graphic);
+     }
+     function createPolygonGraphic(geometry) {
+        //create polygon graphic
+        const fillSymbol = {
+			type: "simple-fill"
+		}
+        const mapview = window.mapView;
+        let graphic = new window.Graphic({geometry: geometry, symbol: fillSymbol})
+        mapview.graphics.add(graphic);
+     }
+
+     function zoomTo(e) {
+         const mapView = window.mapView;
+         const feature = e.target.feature;
+         mapView.zoom = 20;
+         mapView.goTo(feature.geometry);
+     }
+     function onSearch (e) {
+        if (e.code != "Enter") return;
+        
+        divSearchResults.style.display = "block";
+        const q = e.target.value;
+        const landmarkLayer = getActiveLayer();
+        const query = landmarkLayer.createQuery();
+        query.where = "Name like '%" + q + "%'";
+        query.returnGeometry=true;
+        query.num = 3;
+        divSearchResults.innerHTML = "";
+        landmarkLayer.queryFeatures(query)
+
+        .then(result => result.features.forEach(f => {
+            let r = document.createElement("li")
+            r.textContent = f.attributes.Name;
+            r.feature = f;
+            r.addEventListener("click", zoomTo);
+            divSearchResults.appendChild(r);
+        }))
+        .catch(e => alert ("Error executing query " + e));
+     }
+
+     function onTypeChange(e) {
+        const dd = e.target;
+        const selectedIndex = dd.options.selectedIndex;
+        const type = dd.options[selectedIndex].textContent;
+        const landmarkLayer = getActiveLayer(); 
+        const query = landmarkLayer.createQuery();
+        if (type == "All")
+            query.where = "1=1";
+        else
+            query.where = "Type = '" + type + "'";
+        
+        landmarkLayer.definitionExpression = query.where;
+        landmarkLayer.queryFeatureCount(query)
+        .then(c => {
+            const lblTypeCount = document.getElementById("lblTypeCount");
+            lblTypeCount.textContent = c;
+        })
+        .catch(e => alert("Error executing function."))
+     }
+
+     function loadLandmarkTypes() {
+        const ddTypeList = document.getElementById("ddTypeList");
+        const landmarkLayer = getActiveLayer();
+        const query = landmarkLayer.createQuery();
+        query.outFields = ["type"];
+        query.returnGeometry = false;
+        query.returnDistinctValues = true;
+        const oAll = document.createElement("option");
+        oAll.textContent = "All";
+        ddTypeList.appendChild(oAll);
+        landmarkLayer.queryFeatures(query)
+        .then(result =>  result.features.forEach(t => {
+            let o = document.createElement("option");
+            o.textContent = t.attributes.Type;
+            ddTypeList.appendChild(o)
+        }))
+        .catch(e => alert("Error executing query." + e));
+         
+     }
+
+     function loadLayers(layers) {
+      const ddLayerList = document.getElementById("ddLayerList");
+       layers.forEach(l => {
+            let o = document.createElement("option");
+            o.textContent = l.title;
+            o.layer = l;
+            ddLayerList.appendChild(o)
+       });
+     }
+
+     function getActiveLayer () {
+        const ddLayerList = document.getElementById("ddLayerList");
+        const selectedIndex = ddLayerList.options.selectedIndex;
+        return ddLayerList.options[selectedIndex].layer;
+     }
+      
+     require (["esri/WebMap", "esri/views/MapView", "esri/tasks/GeometryService", "esri/tasks/support/BufferParameters", "esri/Graphic"],
+     (WebMap,MapView, GeometryService, BufferParameters, Graphic) => {
+        const map = new WebMap({
+ 
+            "portalItem" : {
+                "id" : "2e4db9b83977465b878fbafc4dc96a1d" 
+            }
+        });
+        const mapView = new MapView({ 
+            "container" : "divMapView",
+            "map" : map
+        })
+        window.mapView = mapView;
+        window.Graphic = Graphic;
+
+        map.when(() => {
+            //map is ready
+            loadLayers(map.layers);
+            loadLandmarkTypes();
+        
+            //setup events 
+            const ddTypeList = document.getElementById("ddTypeList");
+            const txtSearch = document.getElementById("txtSearch");
+            divSearchResults = document.getElementById("divSearchResults");
+            ddTypeList.addEventListener("change", onTypeChange);
+            txtSearch.addEventListener("keypress", onSearch);
+            
+            //create custom popup
+            let landmarkLayer = getActiveLayer();
+                landmarkLayer.popupTemplate = { 
+                    "title": "Find nearby",
+                    "content": feature => {
+                        //return a div element that has everything
+                        const dv = document.createElement("div");
+                        //distance text box where use will type
+                        const txtDistance = document.createElement("input");
+                        txtDistance.type = 'text';
+                        //default 1000 feet
+                        txtDistance.value = 1000;
+                        //clone the type list
+                        const ddcloneTypes = ddTypeList.cloneNode(true);
+                        //create button 
+                        const btnSpatialSearch = document.createElement("button");
+                        btnSpatialSearch.textContent = "Search";
+                        //wire search event. 
+                        const geometryServiceUrl = "https://sampleserver6.arcgisonline.com/arcgis/rest/services/Utilities/Geometry/GeometryServer";
+                        btnSpatialSearch.addEventListener("click", e => {
+                             mapView.graphics.items = [];
+                             const g = feature.graphic.geometry;
+                             //geometry service code goes here
+                             const gs = new GeometryService({url: geometryServiceUrl})
+                             const bf =  new BufferParameters({
+                                distances: [txtDistance.value],
+                                unit: "feet",
+                                geometries: [g]
+                            })
+
+                            gs.buffer(bf)
+                            .then(polygons => {
+                                //we got back the buffered polygon
+                                const buffer = polygons [0];
+                                createPolygonGraphic(buffer);
+                                //query landmarks layer and bass the buffer 
+                                const landmarkLayer = getActiveLayer();
+                                const q = landmarkLayer.createQuery();
+                                q.geometry = buffer;
+                                let type = ddcloneTypes.options[ddcloneTypes.selectedIndex].textContent;
+                                if (type == "All")
+                                    q.where = "1=1";
+                                else
+                                    q.where = "Type = '" + type + "'";
+                                landmarkLayer.queryFeatures(q)
+                                .then (result => {
+                                    //do something with the results
+                                    result.features.forEach(f => {
+                                        //create point graphic
+                                        createPointGraphic(f.geometry)
+                                        createLineGraphic(g, f.geometry)
+                                    });
+                                })
+                                .catch (e => alert("error querying features."))
+
+                            })
+                            .catch(e => alert("Something wrong happened."))
+
+                        })
+                        dv.appendChild(document.createTextNode(" Type: "))
+                        dv.appendChild(ddcloneTypes);
+                        dv.appendChild(document.createTextNode(" Distance: "));
+                        dv.appendChild(txtDistance);
+                        dv.appendChild(document.createTextNode(" ft. "));
+                        dv.appendChild(btnSpatialSearch);
+                        return dv;
+ 
+                    }
+                }
+
+        })
+          
+
+     })  
+    </script>
 </head>
 <body>
-    
+    <div id = 'divMapView'></div>
+    <div id = 'divToolbar'>
+        <label>Layers</label>
+        <select id = 'ddLayerList'>
+        </select>
+        <label>Types</label>
+        <select id = 'ddTypeList'>
+        </select>
+        <label id = 'lblTypeCount'></label>
+        <input type = 'text' id = 'txtSearch' class = 'searchBox'>
+        <div id = 'divSearchResults' class = 'searchResult'>
+             search result 1
+             search result 2
+             search result 3
+        </div>
+    </div>
 </body>
 </html>
